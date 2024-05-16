@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Tweet } from './tweet.entity';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Group } from './group.entity';
+import { Tweet } from './tweet.entity';
 
 @Entity()
 export class User {
