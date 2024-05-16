@@ -1,6 +1,6 @@
 ### Requirements
 
-Implement a robust permission system for tweets with dynamic groups and permissions.
+Robust permission system for tweets with dynamic groups and permissions.
 
 ### Key Features:
 

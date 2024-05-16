@@ -81,11 +81,15 @@ type PaginatedTweet {
 }
 
 type Query {
+  user(id: String!): User!
   paginateTweets(userId: String!, limit: Int!, page: Int!): PaginatedTweet!
   canEditTweet(userId: String!, tweetId: String!): Boolean!
 }
 
 type Mutation {
+  # Optional for testing
+  createUser(username: String!, email: String!): User!
+  # Requirement
   createGroup(input: CreateGroupInput!): Group!
   createTweet(input: CreateTweetInput!): Tweet!
   updateTweetPermissions(input: UpdateTweetPermissionsInput!): Boolean!
