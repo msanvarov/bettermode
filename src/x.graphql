@@ -1,0 +1,92 @@
+scalar DateTime
+
+enum TweetCategory {
+  Sport
+  Finance
+  Tech
+  News
+}
+
+type User {
+  id: String!
+  username: String!
+  email: String!
+  tweets: [Tweet!]!
+  groups: [Group!]!
+}
+
+type Group {
+  id: String!
+  name: String!
+  creator: User!
+  memberships: [GroupMembership!]!
+}
+
+type GroupMembership {
+  id: String!
+  group: Group!
+  user: User
+  subgroup: Group
+}
+
+type Tweet {
+  id: String!
+  createdAt: DateTime!
+  author: User!
+  content: String!
+  parentTweetId: String
+  category: TweetCategory!
+  location: String!
+  permissions: [TweetPermission!]!
+}
+
+type TweetPermission {
+  id: String!
+  tweet: Tweet!
+  permissionType: PermissionType!
+  inherit: Boolean!
+  group: Group
+}
+
+enum PermissionType {
+  View
+  Edit
+}
+
+input CreateGroupInput {
+  userIds: [String!]!
+  groupIds: [String!]!
+}
+
+input CreateTweetInput {
+  authorId: String!
+  content: String!
+  hashtags: [String!]
+  parentTweetId: String
+  category: TweetCategory!
+  location: String!
+}
+
+input UpdateTweetPermissionsInput {
+  tweetId: String!
+  inheritViewPermissions: Boolean!
+  inheritEditPermissions: Boolean!
+  viewPermissions: [String!]!
+  editPermissions: [String!]!
+}
+
+type PaginatedTweet {
+  nodes: [Tweet!]!
+  hasNextPage: Boolean!
+}
+
+type Query {
+  paginateTweets(userId: String!, limit: Int!, page: Int!): PaginatedTweet!
+  canEditTweet(userId: String!, tweetId: String!): Boolean!
+}
+
+type Mutation {
+  createGroup(input: CreateGroupInput!): Group!
+  createTweet(input: CreateTweetInput!): Tweet!
+  updateTweetPermissions(input: UpdateTweetPermissionsInput!): Boolean!
+}
