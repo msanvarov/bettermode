@@ -1,3 +1,4 @@
+import { TweetCategory } from '@/graphql';
 import {
   Column,
   CreateDateColumn,
@@ -8,13 +9,6 @@ import {
 } from 'typeorm';
 import { TweetPermission } from './tweet-permisison.entity';
 import { User } from './user.entity';
-
-export enum TweetCategory {
-  Sport = 'Sport',
-  Finance = 'Finance',
-  Tech = 'Tech',
-  News = 'News',
-}
 
 @Entity()
 export class Tweet {

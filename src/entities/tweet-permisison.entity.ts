@@ -1,3 +1,4 @@
+import { PermissionType } from '@/graphql';
 import {
   Column,
   Entity,
@@ -7,11 +8,6 @@ import {
 } from 'typeorm';
 import { Group } from './group.entity';
 import { Tweet } from './tweet.entity';
-
-export enum PermissionType {
-  View = 'View',
-  Edit = 'Edit',
-}
 
 @Entity()
 export class TweetPermission {
