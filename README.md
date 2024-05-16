@@ -20,6 +20,20 @@
 
 ---
 
+### 🛠️ Prerequisites
+
+#### Non Docker
+
+- Please ensure to have [Node.js](https://nodejs.org/en/download/) (16+) locally by downloading the Javascript runtime via `brew`, `choco`, or `apt-get`.
+
+- Please ensure to have PostgreSQL locally by download from [Postgres website](https://www.postgresql.org/download/). The control panel can then trigger PostgreSQL to start on localhost. PostgreSQL can be downloaded standalone via `brew`, `choco`, or `apt-get`.
+
+#### Docker 🐳
+
+- Please make sure to have [Docker Desktop](https://www.docker.com/products/docker-desktop/) operational to quickly compose the required dependencies. Then follow the docker procedure outlined below.
+
+---
+
 ### 🚀 Deployment
 
 #### Manual Deployment without Docker
@@ -82,7 +96,7 @@
 
 ### API Design
 
-Nest with GraphQL - Below are some potential tweaks and implementations details for each API.
+Nest with GraphQL - Below are the GraphQL resolvers & types.
 
 #### GraphQL Resolvers & Types
 
