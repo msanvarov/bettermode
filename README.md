@@ -48,6 +48,47 @@
 
 - Navigate to http://localhost:3333/graphql for the GraphQL playground.
 
+- Example queries and mutations:
+
+```graphql
+query {
+  user(id: "<UID>") {
+    id
+    email
+    username
+  }
+}
+```
+
+```graphql
+mutation {
+  createUser(username: "sal", email: "sal@grr.la") {
+    id
+    username
+    email
+  }
+  createGroup(input: { userIds: ["<UID>"], groupIds: ["<GROUP_ID>"] }) {
+    id
+  }
+  createTweet(
+    input: {
+      authorId: "<UID>"
+      content: "What is life?"
+      hashtags: ["#life"]
+      category: News
+      location: "Toronto"
+    }
+  ) {
+    id
+    createdAt
+    content
+    parentTweetId
+    category
+    location
+  }
+}
+```
+
 ---
 
 ## Development Plan
