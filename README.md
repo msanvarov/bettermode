@@ -91,6 +91,13 @@ mutation {
 
 ---
 
+## Testing
+
+- Unit tests: `npm run test`
+- E2E tests: `npm run test:e2e`
+
+---
+
 ## Development Plan
 
 ### Define the Data Model
