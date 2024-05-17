@@ -1,7 +1,7 @@
-import { GroupEntity, GroupSchema } from '@/entities/group.entity';
-import { UserEntity, UserSchema } from '@/entities/user.entity';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { GroupEntity, GroupSchema } from '../entities/group.entity';
+import { UserEntity, UserSchema } from '../entities/user.entity';
 import { GroupResolver } from './group.resolver';
 import { GroupService } from './group.service';
 

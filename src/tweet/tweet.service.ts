@@ -1,14 +1,14 @@
-import { GroupDocument, GroupEntity } from '@/entities/group.entity';
-import {
-  TweetPermissionDocument,
-  TweetPermissionEntity,
-} from '@/entities/tweet-permission.entity';
-import { TweetDocument, TweetEntity } from '@/entities/tweet.entity';
-import { UserDocument, UserEntity } from '@/entities/user.entity';
-import { PermissionType, TweetCategory } from '@/graphql';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { GroupDocument, GroupEntity } from '../entities/group.entity';
+import {
+  TweetPermissionDocument,
+  TweetPermissionEntity,
+} from '../entities/tweet-permission.entity';
+import { TweetDocument, TweetEntity } from '../entities/tweet.entity';
+import { UserDocument, UserEntity } from '../entities/user.entity';
+import { PermissionType, TweetCategory } from '../graphql';
 
 @Injectable()
 export class TweetService {

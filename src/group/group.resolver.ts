@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GroupEntity } from '@/entities/group.entity';
-import { CreateGroupInput } from '@/graphql';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { GroupEntity } from '../entities/group.entity';
+import { CreateGroupInput } from '../graphql';
 import { GroupService } from './group.service';
 
 @Resolver((of) => GroupEntity)

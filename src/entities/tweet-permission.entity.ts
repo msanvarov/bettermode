@@ -1,6 +1,6 @@
-import { PermissionType } from '@/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { PermissionType } from '../graphql';
 
 export type TweetPermissionDocument = TweetPermissionEntity & Document;
 

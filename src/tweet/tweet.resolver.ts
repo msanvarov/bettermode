@@ -1,10 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { TweetEntity } from '@/entities/tweet.entity';
-import {
-  CreateTweetInput,
-  PaginatedTweet,
-  UpdateTweetPermissionsInput,
-} from '@/graphql';
 import {
   Args,
   Field,
@@ -13,6 +7,12 @@ import {
   Query,
   Resolver,
 } from '@nestjs/graphql';
+import { TweetEntity } from '../entities/tweet.entity';
+import {
+  CreateTweetInput,
+  PaginatedTweet,
+  UpdateTweetPermissionsInput,
+} from '../graphql';
 import { TweetService } from './tweet.service';
 
 @ObjectType()

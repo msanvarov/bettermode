@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { UserEntity } from '@/entities/user.entity';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { UserEntity } from '../entities/user.entity';
 import { UserService } from './user.service';
 
 @Resolver((of) => UserEntity)

@@ -1,8 +1,8 @@
-import { GroupDocument, GroupEntity } from '@/entities/group.entity';
-import { UserDocument, UserEntity } from '@/entities/user.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { GroupDocument, GroupEntity } from '../entities/group.entity';
+import { UserDocument, UserEntity } from '../entities/user.entity';
 
 @Injectable()
 export class GroupService {

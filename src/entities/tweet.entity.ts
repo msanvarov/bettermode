@@ -1,6 +1,6 @@
-import { TweetCategory } from '@/graphql';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { TweetCategory } from '../graphql';
 
 export type TweetDocument = TweetEntity & Document;
 
