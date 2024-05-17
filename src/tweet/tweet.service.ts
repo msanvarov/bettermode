@@ -116,12 +116,25 @@ export class TweetService {
     // Update View Permissions
     if (!inheritViewPermissions) {
       for (const id of viewPermissions) {
-        const permission = new this.permissionModel({
+        // Determine whether this is a userId or groupId
+        const isUserId = this.userModel.findById(id);
+        const isGroupId = this.groupModel.findById(id);
+        if (!isUserId && !isGroupId) {
+          throw new Error('Error user or group id not found');
+        }
+        const payload = {
           tweet: tweet._id,
           permissionType: PermissionType.View,
           inherit: false,
-          group: id,
-        });
+          groupIds: [],
+          userIds: [],
+        };
+        if (isUserId) {
+          payload.userIds.push(id);
+        } else {
+          payload.groupIds.push(id);
+        }
+        const permission = new this.permissionModel(payload);
         await permission.save();
       }
     } else {
@@ -150,12 +163,24 @@ export class TweetService {
     // Update Edit Permissions
     if (!inheritEditPermissions) {
       for (const id of editPermissions) {
-        const permission = new this.permissionModel({
+        const isUserId = this.userModel.findById(id);
+        const isGroupId = this.groupModel.findById(id);
+        if (!isUserId && !isGroupId) {
+          throw new Error('Error user or group id not found');
+        }
+        const payload = {
           tweet: tweet._id,
           permissionType: PermissionType.Edit,
           inherit: false,
-          group: id,
-        });
+          groupIds: [],
+          userIds: [],
+        };
+        if (isUserId) {
+          payload.userIds.push(id);
+        } else {
+          payload.groupIds.push(id);
+        }
+        const permission = new this.permissionModel(payload);
         await permission.save();
       }
     } else {
