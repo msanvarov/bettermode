@@ -46,6 +46,8 @@
 
 - Start the api in development mode by using `npm run start` (the app will be exposed on http://localhost:3333; not to conflict with React, Angular, or Vue ports).
 
+- Navigate to http://localhost:3333/graphql for the GraphQL playground.
+
 ---
 
 ## Development Plan
