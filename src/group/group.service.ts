@@ -12,15 +12,20 @@ export class GroupService {
   ) {}
 
   async createGroup(
-    creatorId: string,
     userIds: string[],
     groupIds: string[],
   ): Promise<GroupEntity> {
+    /*
+    Create a group with the given userIds and groupIds
+    Precondition: The first element of the userIds is the creator
+    */
     // Ensure the creator exists
+    if (!userIds.length) throw new Error('User IDs array cannot be empty');
+
+    // Determine the creator based on your business logic, e.g., the first user in the list
+    const creatorId = this.determineCreator(userIds);
     const creator = await this.userModel.findById(creatorId);
-    if (!creator) {
-      throw new Error('Creator user not found');
-    }
+    if (!creator) throw new Error('Creator user not found');
 
     // Validate user IDs
     const validUserIds = await this.userModel.find({ _id: { $in: userIds } });
@@ -44,5 +49,10 @@ export class GroupService {
 
     await group.save();
     return group;
+  }
+
+  private determineCreator(userIds: string[]): string {
+    // Logic: Pick the first user as the creator
+    return userIds[0];
   }
 }

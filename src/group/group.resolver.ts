@@ -10,13 +10,8 @@ export class GroupResolver {
 
   @Mutation((returns) => GroupEntity)
   async createGroup(
-    @Args('creatorId') creatorId: string,
     @Args('input') input: CreateGroupInput,
   ): Promise<GroupEntity> {
-    return this.groupService.createGroup(
-      creatorId,
-      input.userIds,
-      input.groupIds,
-    );
+    return this.groupService.createGroup(input.userIds, input.groupIds);
   }
 }
