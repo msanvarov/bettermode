@@ -7,10 +7,13 @@ export type TweetDocument = TweetEntity & Document;
 @Schema({ timestamps: true })
 export class TweetEntity {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  author: Types.ObjectId;
+  authorId: Types.ObjectId;
 
   @Prop({ required: true })
   content: string;
+
+  @Prop({ type: [String], required: true })
+  hashtags: string[];
 
   @Prop({ type: Types.ObjectId, ref: 'Tweet' })
   parentTweetId: Types.ObjectId;

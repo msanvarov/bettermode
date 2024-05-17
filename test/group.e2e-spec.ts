@@ -1,5 +1,4 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -13,11 +12,7 @@ describe('Group and User E2E Tests', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        AppModule,
-        rootMongooseTestModule(), // Ensure you have a utility to connect to a test MongoDB instance
-        MongooseModule.forRoot('mongodb://localhost/nestjs_test_db'),
-      ],
+      imports: [AppModule, rootMongooseTestModule()],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -25,7 +20,7 @@ describe('Group and User E2E Tests', () => {
   });
 
   afterAll(async () => {
-    await closeInMongodConnection(); // Ensure you properly close your DB connection after tests
+    await closeInMongodConnection();
     await app.close();
   });
 

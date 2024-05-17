@@ -31,7 +31,7 @@ export class TweetService {
     if (!author) throw new Error('Author not found');
 
     const tweet = new this.tweetModel({
-      author: author._id,
+      authorId: author._id,
       content,
       parentTweetId,
       category,
@@ -40,6 +40,63 @@ export class TweetService {
     });
 
     await tweet.save();
+
+    if (!parentTweetId) {
+      // By default, view is open to all (could be represented by a special flag or just lack of any specific view permission)
+      // By default, only author can edit
+      const editPermission = new this.permissionModel({
+        tweet: tweet._id,
+        permissionType: PermissionType.Edit,
+        inherit: false,
+        group: null,
+      });
+      await editPermission.save();
+    } else {
+      // Inherit permissions from the parent tweet if specified
+      const parentTweet = await this.tweetModel.findById(parentTweetId);
+      if (!parentTweet) throw new Error('Parent tweet not found');
+
+      // By default lets toggle inheritance for view and edit permissions
+      const inheritViewPermissions = true;
+      const inheritEditPermissions = true;
+
+      if (inheritViewPermissions) {
+        // Copy view permissions from parent tweet
+        const parentViewPermissions = await this.permissionModel.find({
+          tweet: parentTweet._id,
+          permissionType: PermissionType.View,
+        });
+        for (const perm of parentViewPermissions) {
+          const viewPermission = new this.permissionModel({
+            tweet: tweet._id,
+            permissionType: PermissionType.View,
+            inherit: true,
+            groupIds: perm.groupIds,
+            userIds: perm.userIds,
+          });
+          await viewPermission.save();
+        }
+      }
+
+      if (inheritEditPermissions) {
+        // Copy edit permissions from parent tweet
+        const parentEditPermissions = await this.permissionModel.find({
+          tweet: parentTweet._id,
+          permissionType: PermissionType.Edit,
+        });
+        for (const perm of parentEditPermissions) {
+          const editPermission = new this.permissionModel({
+            tweet: tweet._id,
+            permissionType: PermissionType.Edit,
+            inherit: true,
+            groupIds: perm.groupIds,
+            userIds: perm.userIds,
+          });
+          await editPermission.save();
+        }
+      }
+    }
+
     return tweet;
   }
 
@@ -68,12 +125,26 @@ export class TweetService {
         await permission.save();
       }
     } else {
-      const permission = new this.permissionModel({
-        tweet: tweet._id,
-        permissionType: PermissionType.View,
-        inherit: true,
-      });
-      await permission.save();
+      // Inherit view permissions from parent tweet if applicable
+      const parentTweet = tweet.parentTweetId
+        ? await this.tweetModel.findById(tweet.parentTweetId)
+        : null;
+      if (parentTweet) {
+        const parentPermissions = await this.permissionModel.find({
+          tweet: parentTweet._id,
+          permissionType: PermissionType.View,
+        });
+        for (const perm of parentPermissions) {
+          const viewPermission = new this.permissionModel({
+            tweet: tweet._id,
+            permissionType: PermissionType.View,
+            inherit: true,
+            groupIds: perm.groupIds,
+            userIds: perm.userIds,
+          });
+          await viewPermission.save();
+        }
+      }
     }
 
     // Update Edit Permissions
@@ -88,12 +159,26 @@ export class TweetService {
         await permission.save();
       }
     } else {
-      const permission = new this.permissionModel({
-        tweet: tweet._id,
-        permissionType: PermissionType.Edit,
-        inherit: true,
-      });
-      await permission.save();
+      // Inherit edit permissions from parent tweet if applicable
+      const parentTweet = tweet.parentTweetId
+        ? await this.tweetModel.findById(tweet.parentTweetId)
+        : null;
+      if (parentTweet) {
+        const parentPermissions = await this.permissionModel.find({
+          tweet: parentTweet._id,
+          permissionType: PermissionType.Edit,
+        });
+        for (const perm of parentPermissions) {
+          const editPermission = new this.permissionModel({
+            tweet: tweet._id,
+            permissionType: PermissionType.Edit,
+            inherit: true,
+            groupIds: perm.groupIds,
+            userIds: perm.userIds,
+          });
+          await editPermission.save();
+        }
+      }
     }
 
     return true;
@@ -109,7 +194,7 @@ export class TweetService {
     const tweets = await this.tweetModel.aggregate([
       {
         $lookup: {
-          from: 'tweetpermissions',
+          from: 'tweetpermissionentities',
           localField: '_id',
           foreignField: 'tweet',
           as: 'permissions',
@@ -147,15 +232,51 @@ export class TweetService {
   }
 
   async canEditTweet(userId: string, tweetId: string): Promise<boolean> {
-    const groups = await this.groupModel.find({ userIds: userId });
-    const groupIds = groups.map((group) => group._id);
+    const tweet = await this.tweetModel.findById(tweetId);
+    if (!tweet) throw new Error('Tweet not found');
 
-    const permission = await this.permissionModel.findOne({
-      tweet: tweetId,
+    // If the user is the author, they can always edit the tweet.
+    if (tweet.authorId.toString() === userId) {
+      return true;
+    }
+
+    // Find all groups that this user belongs to
+    const userGroups = await this.groupModel.find({ userIds: userId });
+    const userGroupIds = userGroups.map((group) => group._id.toString());
+
+    // Find all edit permissions for this tweet
+    const editPermissions = await this.permissionModel.find({
+      tweet: tweet._id,
       permissionType: PermissionType.Edit,
-      $or: [{ group: { $in: groupIds } }, { inherit: true }],
     });
 
-    return !!permission;
+    for (const perm of editPermissions) {
+      // If permission is inherited and there's a parent tweet, check parent permissions
+      if (perm.inherit && tweet.parentTweetId) {
+        const parentCanEdit = await this.canEditTweet(
+          userId,
+          tweet.parentTweetId.toString(),
+        );
+        if (parentCanEdit) {
+          return true;
+        }
+      } else {
+        // Check if the user is directly allowed to edit the tweet
+        if (perm.userIds.map((id) => id.toString()).includes(userId)) {
+          return true;
+        }
+        // Check if the user's group is allowed to edit the tweet
+        if (
+          perm.groupIds.some((groupId) =>
+            userGroupIds.includes(groupId.toString()),
+          )
+        ) {
+          return true;
+        }
+      }
+    }
+
+    // If no conditions are met, the user cannot edit the tweet
+    return false;
   }
 }

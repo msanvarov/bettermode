@@ -15,8 +15,11 @@ export class TweetPermissionEntity {
   @Prop()
   inherit: boolean;
 
-  @Prop({ type: Types.ObjectId, ref: 'Group' })
-  group: Types.ObjectId;
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Group' }] })
+  groupIds: Types.ObjectId[];
+
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
+  userIds: Types.ObjectId[];
 }
 
 export const TweetPermissionSchema = SchemaFactory.createForClass(

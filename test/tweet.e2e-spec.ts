@@ -1,5 +1,4 @@
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -15,11 +14,7 @@ describe('Tweet E2E Tests', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        AppModule,
-        rootMongooseTestModule(),
-        MongooseModule.forRoot('mongodb://localhost/nestjs_test_db'),
-      ],
+      imports: [AppModule, rootMongooseTestModule()],
     }).compile();
 
     app = moduleFixture.createNestApplication();
