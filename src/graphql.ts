@@ -66,12 +66,12 @@ export interface GroupMembership {
 export interface Tweet {
     id: string;
     createdAt: DateTime;
-    author: User;
+    authorId: string;
     content: string;
+    hashtags?: Nullable<string[]>;
     parentTweetId?: Nullable<string>;
-    category: TweetCategory;
-    location: string;
-    permissions: TweetPermission[];
+    category?: Nullable<TweetCategory>;
+    location?: Nullable<string>;
 }
 
 export interface TweetPermission {

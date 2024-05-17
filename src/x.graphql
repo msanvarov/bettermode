@@ -31,12 +31,12 @@ type GroupMembership {
 type Tweet {
   id: String!
   createdAt: DateTime!
-  author: User!
+  authorId: String!
   content: String!
+  hashtags: [String!]
   parentTweetId: String
-  category: TweetCategory!
-  location: String!
-  permissions: [TweetPermission!]!
+  category: TweetCategory
+  location: String
 }
 
 type TweetPermission {
