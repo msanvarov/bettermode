@@ -1,24 +1,15 @@
-import {
-  Column,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { GroupMembership } from './group-membership.entity';
-import { User } from './user.entity';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
 
-@Entity()
-export class Group {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+export type GroupDocument = GroupEntity & Document;
 
-  @Column()
-  name: string;
+@Schema()
+export class GroupEntity {
+  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'User' }] })
+  userIds: Types.ObjectId[];
 
-  @ManyToOne(() => User, (user) => user.groups)
-  creator: User;
-
-  @OneToMany(() => GroupMembership, (membership) => membership.group)
-  memberships: GroupMembership[];
+  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'Group' }] })
+  groupIds: Types.ObjectId[];
 }
+
+export const GroupSchema = SchemaFactory.createForClass(GroupEntity);

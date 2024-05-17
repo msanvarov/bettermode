@@ -1,58 +1,48 @@
-import { GroupMembership } from '@/entities/group-membership.entity';
-import { Group } from '@/entities/group.entity';
-import { User } from '@/entities/user.entity';
+import { GroupDocument, GroupEntity } from '@/entities/group.entity';
+import { UserDocument, UserEntity } from '@/entities/user.entity';
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class GroupService {
   constructor(
-    @InjectRepository(Group)
-    private groupRepository: Repository<Group>,
-    @InjectRepository(GroupMembership)
-    private membershipRepository: Repository<GroupMembership>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @InjectModel(GroupEntity.name) private groupModel: Model<GroupDocument>,
+    @InjectModel(UserEntity.name) private userModel: Model<UserDocument>,
   ) {}
 
   async createGroup(
     creatorId: string,
-    name: string,
     userIds: string[],
     groupIds: string[],
-  ): Promise<Group> {
-    const creator = await this.userRepository.findOne({
-      where: { id: creatorId },
+  ): Promise<GroupEntity> {
+    // Ensure the creator exists
+    const creator = await this.userModel.findById(creatorId);
+    if (!creator) {
+      throw new Error('Creator user not found');
+    }
+
+    // Validate user IDs
+    const validUserIds = await this.userModel.find({ _id: { $in: userIds } });
+    if (validUserIds.length !== userIds.length) {
+      throw new Error('One or more user IDs are invalid');
+    }
+
+    // Validate group IDs
+    const validGroupIds = await this.groupModel.find({
+      _id: { $in: groupIds },
     });
-    if (!creator) throw new Error('Creator not found');
-
-    const group = this.groupRepository.create({ creator, name });
-    await this.groupRepository.save(group);
-
-    for (const userId of userIds) {
-      const user = await this.userRepository.findOne({
-        where: { id: userId },
-      });
-      if (user) {
-        const membership = this.membershipRepository.create({ group, user });
-        await this.membershipRepository.save(membership);
-      }
+    if (validGroupIds.length !== groupIds.length) {
+      throw new Error('One or more group IDs are invalid');
     }
 
-    for (const groupId of groupIds) {
-      const subgroup = await this.groupRepository.findOne({
-        where: { id: groupId },
-      });
-      if (subgroup) {
-        const membership = this.membershipRepository.create({
-          group,
-          subgroup,
-        });
-        await this.membershipRepository.save(membership);
-      }
-    }
+    // Create the group
+    const group = new this.groupModel({
+      userIds: userIds,
+      groupIds: groupIds,
+    });
 
+    await group.save();
     return group;
   }
 }

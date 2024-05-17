@@ -1,21 +1,22 @@
-import { GroupMembership } from '@/entities/group-membership.entity';
-import { Group } from '@/entities/group.entity';
-import { TweetPermission } from '@/entities/tweet-permisison.entity';
-import { Tweet } from '@/entities/tweet.entity';
-import { User } from '@/entities/user.entity';
+import { GroupEntity, GroupSchema } from '@/entities/group.entity';
+import {
+  TweetPermissionEntity,
+  TweetPermissionSchema,
+} from '@/entities/tweet-permission.entity';
+import { TweetEntity, TweetSchema } from '@/entities/tweet.entity';
+import { UserEntity, UserSchema } from '@/entities/user.entity';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { TweetResolver } from './tweet.resolver';
 import { TweetService } from './tweet.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Tweet,
-      TweetPermission,
-      User,
-      Group,
-      GroupMembership,
+    MongooseModule.forFeature([
+      { name: TweetEntity.name, schema: TweetSchema },
+      { name: TweetPermissionEntity.name, schema: TweetPermissionSchema },
+      { name: UserEntity.name, schema: UserSchema },
+      { name: GroupEntity.name, schema: GroupSchema },
     ]),
   ],
   providers: [TweetService, TweetResolver],

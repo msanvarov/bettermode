@@ -1,13 +1,17 @@
-import { GroupMembership } from '@/entities/group-membership.entity';
-import { Group } from '@/entities/group.entity';
-import { User } from '@/entities/user.entity';
+import { GroupEntity, GroupSchema } from '@/entities/group.entity';
+import { UserEntity, UserSchema } from '@/entities/user.entity';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { GroupResolver } from './group.resolver';
 import { GroupService } from './group.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Group, User, GroupMembership])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: GroupEntity.name, schema: GroupSchema },
+      { name: UserEntity.name, schema: UserSchema },
+    ]),
+  ],
   providers: [GroupService, GroupResolver],
   exports: [GroupService],
 })

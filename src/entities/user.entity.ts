@@ -1,21 +1,15 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { Group } from './group.entity';
-import { Tweet } from './tweet.entity';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
 
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+export type UserDocument = UserEntity & Document;
 
-  @Column()
+@Schema()
+export class UserEntity {
+  @Prop({ required: true })
   username: string;
 
-  @Column()
+  @Prop({ required: true })
   email: string;
-
-  @OneToMany(() => Tweet, (tweet) => tweet.author)
-  tweets: Tweet[];
-
-  @OneToMany(() => Group, (group) => group.creator)
-  groups: Group[];
 }
+
+export const UserSchema = SchemaFactory.createForClass(UserEntity);

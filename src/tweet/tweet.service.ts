@@ -1,62 +1,45 @@
-import { GroupMembership } from '@/entities/group-membership.entity';
-import { Group } from '@/entities/group.entity';
-import { TweetPermission } from '@/entities/tweet-permisison.entity';
-import { Tweet } from '@/entities/tweet.entity';
-import { User } from '@/entities/user.entity';
+import { GroupDocument, GroupEntity } from '@/entities/group.entity';
+import {
+  TweetPermissionDocument,
+  TweetPermissionEntity,
+} from '@/entities/tweet-permission.entity';
+import { TweetDocument, TweetEntity } from '@/entities/tweet.entity';
+import { UserDocument, UserEntity } from '@/entities/user.entity';
 import { PermissionType, TweetCategory } from '@/graphql';
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class TweetService {
   constructor(
-    @InjectRepository(Tweet)
-    private tweetRepository: Repository<Tweet>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(TweetPermission)
-    private permissionRepository: Repository<TweetPermission>,
-    @InjectRepository(Group)
-    private groupRepository: Repository<Group>,
-    @InjectRepository(GroupMembership)
-    private groupMembershipRepository: Repository<GroupMembership>,
+    @InjectModel(TweetEntity.name) private tweetModel: Model<TweetDocument>,
+    @InjectModel(UserEntity.name) private userModel: Model<UserDocument>,
+    @InjectModel(TweetPermissionEntity.name)
+    private permissionModel: Model<TweetPermissionDocument>,
+    @InjectModel(GroupEntity.name) private groupModel: Model<GroupDocument>,
   ) {}
 
   async createTweet(
     authorId: string,
     content: string,
     parentTweetId?: string,
-    category?: string,
+    category?: TweetCategory,
     location?: string,
-  ): Promise<Tweet> {
-    const author = await this.userRepository.findOne({
-      where: {
-        id: authorId,
-      },
-    });
+  ): Promise<TweetEntity> {
+    const author = await this.userModel.findById(authorId);
     if (!author) throw new Error('Author not found');
-    let tweetCategory: TweetCategory | undefined;
-    if (
-      category &&
-      Object.values(TweetCategory).includes(category as TweetCategory)
-    ) {
-      tweetCategory = category as TweetCategory;
-    } else if (category) {
-      // If the category is provided but invalid, throw an error or handle it as needed
-      throw new Error(`Invalid category: ${category}`);
-    }
 
-    const tweet = this.tweetRepository.create({
-      author,
+    const tweet = new this.tweetModel({
+      author: author._id,
       content,
       parentTweetId,
-      category: tweetCategory,
+      category,
       location,
       createdAt: new Date(),
     });
 
-    await this.tweetRepository.save(tweet);
+    await tweet.save();
     return tweet;
   }
 
@@ -67,97 +50,94 @@ export class TweetService {
     viewPermissions: string[],
     editPermissions: string[],
   ): Promise<boolean> {
-    const tweet = await this.tweetRepository.findOne({
-      where: {
-        id: tweetId,
-      },
-    });
+    const tweet = await this.tweetModel.findById(tweetId);
     if (!tweet) throw new Error('Tweet not found');
 
-    // Clear existing permissions
-    await this.permissionRepository.delete({
-      tweet,
-      permissionType: PermissionType.View,
-    });
-    await this.permissionRepository.delete({
-      tweet,
-      permissionType: PermissionType.Edit,
-    });
+    // Remove existing permissions related to the tweet
+    await this.permissionModel.deleteMany({ tweet: tweet._id });
 
+    // Update View Permissions
     if (!inheritViewPermissions) {
-      for (const permissionId of viewPermissions) {
-        const group = await this.groupRepository.findOne({
-          where: {
-            id: permissionId,
-          },
+      for (const id of viewPermissions) {
+        const permission = new this.permissionModel({
+          tweet: tweet._id,
+          permissionType: PermissionType.View,
+          inherit: false,
+          group: id,
         });
-        if (group) {
-          const permission = this.permissionRepository.create({
-            tweet,
-            permissionType: PermissionType.View,
-            inherit: false,
-            group,
-          });
-          await this.permissionRepository.save(permission);
-        }
+        await permission.save();
       }
+    } else {
+      const permission = new this.permissionModel({
+        tweet: tweet._id,
+        permissionType: PermissionType.View,
+        inherit: true,
+      });
+      await permission.save();
     }
 
+    // Update Edit Permissions
     if (!inheritEditPermissions) {
-      for (const permissionId of editPermissions) {
-        const group = await this.groupRepository.findOne({
-          where: {
-            id: permissionId,
-          },
+      for (const id of editPermissions) {
+        const permission = new this.permissionModel({
+          tweet: tweet._id,
+          permissionType: PermissionType.Edit,
+          inherit: false,
+          group: id,
         });
-        if (group) {
-          const permission = this.permissionRepository.create({
-            tweet,
-            permissionType: PermissionType.Edit,
-            inherit: false,
-            group,
-          });
-          await this.permissionRepository.save(permission);
-        }
+        await permission.save();
       }
+    } else {
+      const permission = new this.permissionModel({
+        tweet: tweet._id,
+        permissionType: PermissionType.Edit,
+        inherit: true,
+      });
+      await permission.save();
     }
 
     return true;
   }
 
   async paginateTweets(userId: string, limit: number, page: number) {
-    const user = await this.userRepository.findOne({
-      where: {
-        id: userId,
-      },
-    });
+    const user = await this.userModel.findById(userId);
     if (!user) throw new Error('User not found');
 
-    const userGroupIds = await this.groupMembershipRepository
-      .createQueryBuilder('membership')
-      .where('membership.user_id = :userId', { userId })
-      .select('membership.group_id')
-      .getRawMany();
+    const groups = await this.groupModel.find({ userIds: userId });
+    const groupIds = groups.map((group) => group._id);
 
-    const groupIds = userGroupIds.map((g) => g.group_id);
+    const tweets = await this.tweetModel.aggregate([
+      {
+        $lookup: {
+          from: 'tweetpermissions',
+          localField: '_id',
+          foreignField: 'tweet',
+          as: 'permissions',
+        },
+      },
+      { $unwind: '$permissions' },
+      {
+        $match: {
+          $or: [
+            { 'permissions.group': { $in: groupIds } },
+            { 'permissions.inherit': true },
+          ],
+          'permissions.permissionType': PermissionType.View,
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      { $skip: limit * (page - 1) },
+      { $limit: limit },
+    ]);
 
-    const queryBuilder = this.tweetRepository
-      .createQueryBuilder('tweet')
-      .leftJoinAndSelect('tweet.permissions', 'permission')
-      .leftJoinAndSelect('permission.group', 'group')
-      .where('permission.permissionType = :permissionType', {
-        permissionType: PermissionType.View,
-      })
-      .andWhere(
-        '(permission.group_id IN (:...groupIds) OR permission.group_id IS NULL)',
-        { groupIds },
-      )
-      .orderBy('tweet.createdAt', 'DESC')
-      .skip(limit * (page - 1))
-      .take(limit);
+    const total = await this.tweetModel.countDocuments({
+      $or: [
+        { 'permissions.group': { $in: groupIds } },
+        { 'permissions.inherit': true },
+      ],
+      'permissions.permissionType': PermissionType.View,
+    });
 
-    const tweets = await queryBuilder.getMany();
-    const total = await queryBuilder.getCount();
     const hasNextPage = total > limit * page;
 
     return {
@@ -167,25 +147,14 @@ export class TweetService {
   }
 
   async canEditTweet(userId: string, tweetId: string): Promise<boolean> {
-    const userGroupIds = await this.groupMembershipRepository
-      .createQueryBuilder('membership')
-      .where('membership.user_id = :userId', { userId })
-      .select('membership.group_id')
-      .getRawMany();
+    const groups = await this.groupModel.find({ userIds: userId });
+    const groupIds = groups.map((group) => group._id);
 
-    const groupIds = userGroupIds.map((g) => g.group_id);
-
-    const permission = await this.permissionRepository
-      .createQueryBuilder('permission')
-      .where('permission.tweet_id = :tweetId', { tweetId })
-      .andWhere('permission.permissionType = :permissionType', {
-        permissionType: PermissionType.Edit,
-      })
-      .andWhere(
-        '(permission.group_id IN (:...groupIds) OR permission.group_id IS NULL)',
-        { groupIds },
-      )
-      .getOne();
+    const permission = await this.permissionModel.findOne({
+      tweet: tweetId,
+      permissionType: PermissionType.Edit,
+      $or: [{ group: { $in: groupIds } }, { inherit: true }],
+    });
 
     return !!permission;
   }

@@ -15,7 +15,7 @@
 
 - **Language**: TypeScript
 - **Framework**: NestJS
-- **Database**: PostgreSQL
+- **Database**: MongoDB
 - **API**: GraphQL using Apollo
 
 ---
@@ -63,36 +63,29 @@
 2.  **Groups**
 
     - `id`: Primary Key
-    - `creator_id`: Foreign Key (Users)
-    - `name`: String
+    - `userIds`: Array of Users
+    - `groupIds`: Array of Groups
 
-3.  **GroupMemberships**
-
-    - `id`: Primary Key
-    - `group_id`: Foreign Key (Groups)
-    - `user_id`: Foreign Key (Users) - Nullable
-    - `subgroup_id`: Foreign Key (Groups) - Nullable
-
-4.  **Tweets**
+3.  **Tweets**
 
     - `id`: Primary Key
-    - `author_id`: Foreign Key (Users)
+    - `authorId`: Author Key
     - `content`: Text
-    - `parent_tweet_id`: Foreign Key (Tweets) - Nullable
+    - `parentTweetId`: Parent Tweet Key
     - `category`: Enum (Sport, Finance, Tech, News)
     - `location`: String
-    - `created_at`: DateTime
+    - `createdAt`: DateTime
 
-5.  **TweetPermissions**
+4.  **TweetPermissions**
 
-    - `tweet_id`: Foreign Key (Tweets)
-    - `permission_type`: Enum (View, Edit)
+    - `tweetId`: Tweet Key
+    - `permissionType`: Enum (View, Edit)
     - `inherit`: Boolean
-    - `group_id`: Foreign Key (Groups) - Nullable
+    - `groupId`: Group Key
 
 #### Indices
 
-- Create indices on `creator_id`, `user_id`, `group_id`, and `author_id` for faster lookup.
+- Create indices on `creatorId`, `userId`, `groupId`, and `authorId` for faster lookup.
 
 ### API Design
 
@@ -171,8 +164,3 @@ Nest with GraphQL - Below are the GraphQL resolvers & types.
 
     - Some operations, like editing inherited permissions, could benefit from asynchronous processing to avoid blocking important user interactions.
     - **Optimization**: A background jobs or a message queue (like RabbitMQ or Kafka) for operations that can be processed asynchronously, such as cascading permission updates.
-
-7.  **Database Transaction Management:**
-
-    - Transactions are not explicitly managed, which could lead to inconsistencies given concurrent access.
-    - **Optimization**: Use transactional workflows to ensure consistency, especially when creating or updating complex nested structures like groups and permissions.

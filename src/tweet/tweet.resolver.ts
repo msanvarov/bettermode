@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Tweet } from '@/entities/tweet.entity';
+import { TweetEntity } from '@/entities/tweet.entity';
 import {
   CreateTweetInput,
   PaginatedTweet,
@@ -17,10 +17,10 @@ import { TweetService } from './tweet.service';
 
 @ObjectType()
 export class PaginatedTweetModel {
-  @Field((type) => [Tweet], {
+  @Field((type) => [TweetEntity], {
     description: 'A list of tweets that are viewable by the user',
   })
-  nodes: Tweet[];
+  nodes: TweetEntity[];
 
   @Field({
     description:
@@ -29,7 +29,7 @@ export class PaginatedTweetModel {
   hasNextPage: boolean;
 }
 
-@Resolver((of) => Tweet)
+@Resolver((of) => TweetEntity)
 export class TweetResolver {
   constructor(private readonly tweetService: TweetService) {}
 
@@ -56,8 +56,10 @@ export class TweetResolver {
     return this.tweetService.canEditTweet(userId, tweetId);
   }
 
-  @Mutation((returns) => Tweet)
-  async createTweet(@Args('input') input: CreateTweetInput): Promise<Tweet> {
+  @Mutation((returns) => TweetEntity)
+  async createTweet(
+    @Args('input') input: CreateTweetInput,
+  ): Promise<TweetEntity> {
     return this.tweetService.createTweet(
       input.authorId,
       input.content,

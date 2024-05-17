@@ -17,9 +17,8 @@ type User {
 
 type Group {
   id: String!
-  name: String!
-  creator: User!
-  memberships: [GroupMembership!]!
+  userIds: [String!]!
+  groupIds: [String!]!
 }
 
 type GroupMembership {
@@ -81,6 +80,7 @@ type PaginatedTweet {
 }
 
 type Query {
+  # Optional for testing
   user(id: String!): User!
   paginateTweets(userId: String!, limit: Int!, page: Int!): PaginatedTweet!
   canEditTweet(userId: String!, tweetId: String!): Boolean!

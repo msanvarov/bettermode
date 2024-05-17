@@ -1,38 +1,28 @@
 import { TweetCategory } from '@/graphql';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
-import { TweetPermission } from './tweet-permisison.entity';
-import { User } from './user.entity';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
 
-@Entity()
-export class Tweet {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+export type TweetDocument = TweetEntity & Document;
 
-  @ManyToOne(() => User, (user) => user.tweets)
-  author: User;
+@Schema({ timestamps: true })
+export class TweetEntity {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  author: Types.ObjectId;
 
-  @Column()
+  @Prop({ required: true })
   content: string;
 
-  @Column({ type: 'uuid', nullable: true })
-  parentTweetId: string;
+  @Prop({ type: Types.ObjectId, ref: 'Tweet' })
+  parentTweetId: Types.ObjectId;
 
-  @Column({ type: 'enum', enum: TweetCategory })
+  @Prop({ type: String, enum: TweetCategory })
   category: TweetCategory;
 
-  @Column()
+  @Prop()
   location: string;
 
-  @CreateDateColumn()
+  @Prop({ default: Date.now })
   createdAt: Date;
-
-  @OneToMany(() => TweetPermission, (permission) => permission.tweet)
-  permissions: TweetPermission[];
 }
+
+export const TweetSchema = SchemaFactory.createForClass(TweetEntity);

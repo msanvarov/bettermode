@@ -52,9 +52,8 @@ export interface User {
 
 export interface Group {
     id: string;
-    name: string;
-    creator: User;
-    memberships: GroupMembership[];
+    userIds: string[];
+    groupIds: string[];
 }
 
 export interface GroupMembership {
