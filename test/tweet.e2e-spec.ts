@@ -78,9 +78,7 @@ describe('Tweet E2E Tests', () => {
             inheritEditPermissions: false,
             viewPermissions: ["${userId}"],
             editPermissions: ["${userId}"]
-          }) {
-            id
-          }
+          })
         }`,
       });
 
