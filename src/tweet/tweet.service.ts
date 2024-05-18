@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { GroupDocument, GroupEntity } from '../entities/group.entity';
 import {
   TweetPermissionDocument,
@@ -8,7 +8,7 @@ import {
 } from '../entities/tweet-permission.entity';
 import { TweetDocument, TweetEntity } from '../entities/tweet.entity';
 import { UserDocument, UserEntity } from '../entities/user.entity';
-import { PermissionType, TweetCategory } from '../graphql';
+import { PermissionType, Tweet, TweetCategory } from '../graphql';
 
 @Injectable()
 export class TweetService {
@@ -30,10 +30,11 @@ export class TweetService {
     const author = await this.userModel.findById(authorId);
     if (!author) throw new Error('Author not found');
 
+    // Create a tweet and initially it's public (no specific permissions)
     const tweet = new this.tweetModel({
       authorId: author._id,
       content,
-      parentTweetId,
+      parentTweetId: parentTweetId || null,
       category,
       location,
       createdAt: new Date(),
@@ -42,13 +43,26 @@ export class TweetService {
     await tweet.save();
 
     if (!parentTweetId) {
-      // By default, view is open to all (could be represented by a special flag or just lack of any specific view permission)
+      // By default, view is open to all (this is denoted as an empty array for userIds and groupIds)
       // By default, only author can edit
+
+      // Creating view permissions
+      const viewPermission = new this.permissionModel({
+        tweet: tweet._id,
+        permissionType: PermissionType.View,
+        inherit: false,
+        groupIds: [],
+        userIds: [],
+      });
+      await viewPermission.save();
+
+      // Creating edit permission for the author
       const editPermission = new this.permissionModel({
         tweet: tweet._id,
         permissionType: PermissionType.Edit,
         inherit: false,
-        group: null,
+        groupIds: [],
+        userIds: [],
       });
       await editPermission.save();
     } else {
@@ -142,21 +156,24 @@ export class TweetService {
       const parentTweet = tweet.parentTweetId
         ? await this.tweetModel.findById(tweet.parentTweetId)
         : null;
-      if (parentTweet) {
-        const parentPermissions = await this.permissionModel.find({
-          tweet: parentTweet._id,
+
+      if (!parentTweet) {
+        throw new Error('Parent tweet not found');
+      }
+
+      const parentPermissions = await this.permissionModel.find({
+        tweet: parentTweet._id,
+        permissionType: PermissionType.View,
+      });
+      for (const perm of parentPermissions) {
+        const viewPermission = new this.permissionModel({
+          tweet: tweet._id,
           permissionType: PermissionType.View,
+          inherit: true,
+          groupIds: perm.groupIds,
+          userIds: perm.userIds,
         });
-        for (const perm of parentPermissions) {
-          const viewPermission = new this.permissionModel({
-            tweet: tweet._id,
-            permissionType: PermissionType.View,
-            inherit: true,
-            groupIds: perm.groupIds,
-            userIds: perm.userIds,
-          });
-          await viewPermission.save();
-        }
+        await viewPermission.save();
       }
     }
 
@@ -188,21 +205,22 @@ export class TweetService {
       const parentTweet = tweet.parentTweetId
         ? await this.tweetModel.findById(tweet.parentTweetId)
         : null;
-      if (parentTweet) {
-        const parentPermissions = await this.permissionModel.find({
-          tweet: parentTweet._id,
+      if (!parentTweet) {
+        throw new Error('Parent tweet not found');
+      }
+      const parentPermissions = await this.permissionModel.find({
+        tweet: parentTweet._id,
+        permissionType: PermissionType.Edit,
+      });
+      for (const perm of parentPermissions) {
+        const editPermission = new this.permissionModel({
+          tweet: tweet._id,
           permissionType: PermissionType.Edit,
+          inherit: true,
+          groupIds: perm.groupIds,
+          userIds: perm.userIds,
         });
-        for (const perm of parentPermissions) {
-          const editPermission = new this.permissionModel({
-            tweet: tweet._id,
-            permissionType: PermissionType.Edit,
-            inherit: true,
-            groupIds: perm.groupIds,
-            userIds: perm.userIds,
-          });
-          await editPermission.save();
-        }
+        await editPermission.save();
       }
     }
 
@@ -213,10 +231,18 @@ export class TweetService {
     const user = await this.userModel.findById(userId);
     if (!user) throw new Error('User not found');
 
-    const groups = await this.groupModel.find({ userIds: userId });
-    const groupIds = groups.map((group) => group._id);
+    const userObjectId = new Types.ObjectId(userId);
 
-    const tweets = await this.tweetModel.aggregate([
+    // Find all groups that this user belongs to
+    const userGroups = await this.groupModel.find({
+      userIds: new Types.ObjectId(userId),
+    });
+    const userGroupIds = userGroups.map((group) => group._id);
+
+    console.log('userGroupIds', userGroupIds);
+
+    // Aggregate to find all tweets this user can view
+    const accessibleTweets = await this.tweetModel.aggregate([
       {
         $lookup: {
           from: 'tweetpermissionentities',
@@ -225,33 +251,57 @@ export class TweetService {
           as: 'permissions',
         },
       },
-      { $unwind: '$permissions' },
       {
         $match: {
           $or: [
-            { 'permissions.group': { $in: groupIds } },
-            { 'permissions.inherit': true },
+            { author: new Types.ObjectId(userId) }, // The user is the author of the tweet
+            {
+              permissions: {
+                // Check permissions
+                $elemMatch: {
+                  permissionType: PermissionType.View,
+                  $or: [
+                    { userIds: new Types.ObjectId(userId) }, // User is explicitly given view permissions
+                    { groupIds: { $in: userGroupIds } }, // User's group is given view permissions
+                    {
+                      $and: [
+                        // Treat empty arrays as public access
+                        { userIds: { $exists: true, $size: 0 } },
+                        { groupIds: { $exists: true, $size: 0 } },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
           ],
-          'permissions.permissionType': PermissionType.View,
         },
       },
-      { $sort: { createdAt: -1 } },
-      { $skip: limit * (page - 1) },
-      { $limit: limit },
+      { $sort: { createdAt: -1 } }, // Sort tweets by creation date
+      { $skip: limit * (page - 1) }, // Pagination: skip to the correct page
+      { $limit: limit }, // Pagination: limit the number of tweets returned
+      // Below is to shape the response from Mongo
+      // {
+      //   $project: {
+      //     content: 1,
+      //     author: 1,
+      //     createdAt: 1,
+      //     permissions: 1,
+      //   },
+      // },
     ]);
 
-    const total = await this.tweetModel.countDocuments({
-      $or: [
-        { 'permissions.group': { $in: groupIds } },
-        { 'permissions.inherit': true },
-      ],
-      'permissions.permissionType': PermissionType.View,
-    });
+    // Determine if there's a next page
+    const totalAccessibleTweets = accessibleTweets.length;
+    const hasNextPage = totalAccessibleTweets > limit * page;
 
-    const hasNextPage = total > limit * page;
+    console.log('accessibleTweets', accessibleTweets);
 
     return {
-      nodes: tweets,
+      nodes: accessibleTweets.map((tweet) => ({
+        ...tweet,
+        id: tweet._id,
+      })) as Tweet[],
       hasNextPage,
     };
   }
