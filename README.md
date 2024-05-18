@@ -24,9 +24,9 @@
 
 #### Non Docker
 
-- Please ensure to have [Node.js](https://nodejs.org/en/download/) (16+) locally by downloading the Javascript runtime via `brew`, `choco`, or `apt-get`.
+- Please make certain to have [Node.js](https://nodejs.org/en/download/) (16+) locally by downloading the Javascript runtime via `brew`, `choco`, or `apt-get`.
 
-- Please ensure to have PostgreSQL locally by download from [Postgres website](https://www.postgresql.org/download/). The control panel can then trigger PostgreSQL to start on localhost. PostgreSQL can be downloaded standalone via `brew`, `choco`, or `apt-get`.
+- Please make certain to either have [MongoDB Community](https://www.mongodb.com/try/download/community) locally or MongoDB on the cloud by configuration a cluster in [atlas](https://www.mongodb.com/cloud/atlas).
 
 #### Docker 🐳
 
